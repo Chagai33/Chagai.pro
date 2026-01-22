@@ -7,8 +7,10 @@ const defaultBackground = 'https://images.unsplash.com/photo-1452421822248-d4c2b
 ---
 
 <Layout title="Admin Login | PhotoFolio">
-  <Navbar />
-  <main class="min-h-screen bg-cover bg-center" style={`background-image: url('${defaultBackground}')`} id="loginBackground">
+  <header>
+    <Navbar />
+  </header>
+  <main id="main-content" class="min-h-screen bg-cover bg-center" style={`background-image: url('${defaultBackground}')`}>
     <div class="min-h-screen bg-black bg-opacity-50 py-12">
       <div class="max-w-md mx-auto bg-white/90 dark:bg-dark-primary/90 backdrop-blur-sm p-8 rounded-lg shadow-md">
         <h1 class="text-2xl font-bold text-primary mb-6 font-display">Admin Login</h1>
@@ -55,8 +57,10 @@ const defaultBackground = 'https://images.unsplash.com/photo-1452421822248-d4c2b
     try {
       const settings = await getSiteSettings();
       if (settings?.loginBackgroundUrl) {
-        const loginBackground = document.getElementById('loginBackground');
-        loginBackground!.style.backgroundImage = `url('${settings.loginBackgroundUrl}')`;
+        const loginBackground = document.getElementById('main-content');
+        if (loginBackground) {
+          loginBackground.style.backgroundImage = `url('${settings.loginBackgroundUrl}')`;
+        }
       }
     } catch (error) {
       console.error('Failed to load background:', error);

@@ -262,7 +262,7 @@ Thank you!
   if (images.length === 0) {
     return (
       <div className="text-center py-8">
-        <p className="text-gray-600">No images found.</p>
+        <p className="text-gray-600 dark:text-dark-primary">No images found.</p>
       </div>
     );
   }
@@ -304,8 +304,22 @@ Thank you!
                       {...provided.dragHandleProps}
                       className={`group bg-white dark:bg-dark-secondary rounded-lg shadow-md overflow-hidden transform transition-transform duration-200 ${snapshot.isDragging ? 'scale-105' : 'hover:scale-[1.02]'
                         } ${isSelectionMode && selectedImages.has(image.id) ? 'ring-2 ring-primary' : ''
-                        } cursor-pointer`}
-                      onClick={() => toggleImageSelection(image.id)}
+                        } ${isAdmin ? 'cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2' : ''}`}
+                      {...(isAdmin
+                        ? {
+                            role: 'button' as const,
+                            tabIndex: 0,
+                            'aria-label': `Select image ${image.description ? `: ${image.description}` : ''}`.trim(),
+                            'aria-pressed': selectedImages.has(image.id),
+                            onClick: () => toggleImageSelection(image.id),
+                            onKeyDown: (e: React.KeyboardEvent) => {
+                              if (e.key === 'Enter' || e.key === ' ') {
+                                e.preventDefault();
+                                toggleImageSelection(image.id);
+                              }
+                            }
+                          }
+                        : {})}
                     >
                       <div className="relative">
                         <div className="relative pb-[125%]">
@@ -325,9 +339,11 @@ Thank you!
                               handleContact(image);
                             }}
                             className="absolute top-2 right-2 p-2 bg-white/90 dark:bg-dark-secondary/90 hover:bg-white dark:hover:bg-dark-secondary rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                            type="button"
+                            aria-label="Contact about this image"
                             title="Contact about this image"
                           >
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 text-gray-700">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 text-gray-700 dark:text-dark-primary">
                               <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 00-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 00-16.536-1.84M7.5 14.25L5.106 5.272M6 20.25a.75.75 0 11-1.5 0 .75.75 0 011.5 0zm12.75 0a.75.75 0 11-1.5 0 .75.75 0 011.5 0z" />
                             </svg>
                           </button>
@@ -340,9 +356,11 @@ Thank you!
                                 handleSetAsBackground(image.url);
                               }}
                               className="p-2 bg-white/90 dark:bg-dark-secondary/90 hover:bg-white dark:hover:bg-dark-secondary rounded-full shadow-md"
+                              type="button"
+                              aria-label="Set as login background"
                               title="Set as login background"
                             >
-                              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 text-gray-700">
+                              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 text-gray-700 dark:text-dark-primary">
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
                               </svg>
                             </button>
@@ -352,9 +370,11 @@ Thank you!
                                 setEditingImage(image.id);
                               }}
                               className="p-2 bg-white/90 dark:bg-dark-secondary/90 hover:bg-white dark:hover:bg-dark-secondary rounded-full shadow-md"
+                              type="button"
+                              aria-label="Edit image details"
                               title="Edit image details"
                             >
-                              <PencilIcon className="w-4 h-4 text-gray-700" />
+                              <PencilIcon className="w-4 h-4 text-gray-700 dark:text-dark-primary" />
                             </button>
                             <button
                               onClick={(e) => {
@@ -362,9 +382,11 @@ Thank you!
                                 handleDelete(image.id);
                               }}
                               className="p-2 bg-white/90 dark:bg-dark-secondary/90 hover:bg-white dark:hover:bg-dark-secondary rounded-full shadow-md"
+                              type="button"
+                              aria-label="Delete image"
                               title="Delete image"
                             >
-                              <TrashIcon className="w-4 h-4 text-red-600" />
+                              <TrashIcon className="w-4 h-4 text-red-600 dark:text-red-400" />
                             </button>
                           </div>
                         )}
@@ -422,13 +444,13 @@ Thank you!
                       ) : (
                         image.description && (
                           <div className="p-4">
-                            <p className="text-gray-700">{image.description}</p>
+                            <p className="text-gray-700 dark:text-dark-primary">{image.description}</p>
                             {image.labels.length > 0 && (
                               <div className="mt-2 flex flex-wrap gap-2">
                                 {image.labels.map((label, index) => (
                                   <span
                                     key={index}
-                                    className="bg-gray-100 text-gray-600 px-2 py-1 rounded-md text-sm"
+                                    className="bg-gray-100 text-gray-600 px-2 py-1 rounded-md text-sm dark:bg-dark-primary dark:text-dark-primary dark:border dark:border-gray-600"
                                   >
                                     {label}
                                   </span>
@@ -461,7 +483,7 @@ Thank you!
           </button>
         ) : (
           images.length > 0 && (
-            <p className="text-gray-500 text-sm italic">eod</p>
+            <p className="text-gray-500 dark:text-dark-secondary text-sm italic">eod</p>
           )
         )}
       </div>

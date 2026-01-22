@@ -10,12 +10,14 @@ const settings = await getSiteSettings();
 
 <Layout title="Site Settings | PhotoFolio">
   <ErrorBoundary client:load>
-    <Navbar />
+    <header>
+      <Navbar />
+    </header>
     <div id="loadingScreen" class="fixed inset-0 bg-white dark:bg-dark-primary bg-opacity-75 dark:bg-opacity-90 flex items-center justify-center z-50">
       <LoadingSpinner size="large" client:load />
     </div>
 
-    <main id="settingsContent" class="min-h-screen bg-gray-50 dark:bg-dark-primary py-12 hidden">
+    <main id="main-content" class="min-h-screen bg-gray-50 dark:bg-dark-primary py-12 hidden">
       <div class="max-w-4xl mx-auto px-4">
         <h1 class="text-3xl font-bold text-primary mb-8">Site Settings</h1>
         
@@ -186,6 +188,7 @@ const settings = await getSiteSettings();
 
       // 3. Show Content
       loadingScreen?.classList.add('hidden');
+      const settingsContent = document.getElementById('main-content');
       settingsContent?.classList.remove('hidden');
 
     } catch (error) {

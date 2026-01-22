@@ -8,12 +8,14 @@ import { Toast } from '../../components/Toast';
 
 <Layout title="Admin Dashboard | PhotoFolio">
   <ErrorBoundary client:load>
-    <Navbar />
+    <header>
+      <Navbar />
+    </header>
     <div id="loadingScreen" class="fixed inset-0 bg-white dark:bg-dark-primary bg-opacity-75 dark:bg-opacity-90 flex items-center justify-center z-50">
       <LoadingSpinner size="large" client:load />
     </div>
     
-    <main id="adminContent" class="min-h-screen bg-gray-50 dark:bg-dark-primary py-12 hidden" dir="ltr">
+    <main id="main-content" class="min-h-screen bg-gray-50 dark:bg-dark-primary py-12 hidden" dir="ltr">
       <div class="max-w-7xl mx-auto px-4">
         <h1 class="text-3xl font-bold text-primary mb-8">Admin Dashboard</h1>
         
@@ -211,7 +213,7 @@ import { Toast } from '../../components/Toast';
     const card = document.createElement('div');
     card.className = 'bg-gray-50 dark:bg-dark-primary p-4 rounded-lg';
     card.innerHTML = `
-      <img src="${image.url}" alt="" class="w-full h-48 object-cover rounded-lg mb-4">
+      <img src="${image.url}" alt="${(image.description || image.fileName || 'Uploaded image').replace(/"/g, '&quot;')}" class="w-full h-48 object-cover rounded-lg mb-4">
       <div class="space-y-3">
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>

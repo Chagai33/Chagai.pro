@@ -1,23 +1,65 @@
 ---
 interface Props {
   title: string;
+  description?: string;
+  ogImage?: string;
 }
 
-const { title } = Astro.props;
+import Footer from '../components/Footer.astro';
+
+const { 
+  title,
+  description = "Chagai Yechiel - Professional Photography Portfolio",
+  ogImage = "/favicon.svg"
+} = Astro.props;
+
+const siteUrl = Astro.url.origin;
+const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}`;
+const gaId = import.meta.env.PUBLIC_GA_ID as string | undefined;
 ---
 
 <!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="description" content="Photography Portfolio" />
-    <meta name="viewport" content="width=device-width" />
+    <meta name="description" content={description} />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@400;500;700&family=Playfair+Display:wght@400;500;700&display=swap" rel="stylesheet">
     <meta name="generator" content={Astro.generator} />
     <title>{title}</title>
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content={siteUrl} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:image" content={fullOgImage} />
+    
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:url" content={siteUrl} />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={fullOgImage} />
+    
+    {gaId && (
+      <>
+        <!-- Google Analytics (GA4) -->
+        <script async src={`https://www.googletagmanager.com/gtag/js?id=${gaId}`}></script>
+        <script set:html={`
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){dataLayer.push(arguments);}
+          gtag('js', new Date());
+          gtag('config', '${gaId}', { 
+            anonymize_ip: true,
+            page_path: window.location.pathname
+          });
+        `} />
+      </>
+    )}
     <script>
       // Check for stored theme or system preference
       const theme = (() => {
@@ -38,7 +80,9 @@ const { title } = Astro.props;
     </script>
   </head>
   <body class="transition-colors">
+    <a href="#main-content" class="skip-link">Skip to main content</a>
     <slot />
+    <Footer />
   </body>
 </html>
 
@@ -64,9 +108,61 @@ const { title } = Astro.props;
     scroll-behavior: smooth;
   }
 
+  /* Reduce motion (WCAG 2.1 / IS 5568) */
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+
   /* Selection color */
   ::selection {
     background: #C99E5D;
     color: white;
+  }
+
+  /* Global focus-visible (WCAG 2.1 AA) */
+  :focus-visible {
+    outline: 3px solid #3b82f6; /* blue-500 */
+    outline-offset: 2px;
+  }
+
+  /* Skip to Content Link */
+  .skip-link {
+    position: absolute;
+    top: -40px;
+    left: 0;
+    background: #1C1C1C;
+    color: #E6D5C6;
+    padding: 8px 16px;
+    text-decoration: none;
+    z-index: 100;
+    border-radius: 0 0 4px 0;
+  }
+
+  .skip-link:focus {
+    top: 0;
+    outline: 3px solid #C99E5D;
+    outline-offset: 2px;
+  }
+
+  /* Screen Reader Only */
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
   }
 </style>
