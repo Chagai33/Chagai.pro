@@ -1,0 +1,227 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Navbar from '../../components/Navbar.astro';
+import { ErrorBoundary } from '../../components/ErrorBoundary';
+import { getSiteSettings } from '../../lib/firebase';
+
+const settings = await getSiteSettings();
+---
+
+<Layout title="Site Settings | PhotoFolio">
+  <Navbar />
+  <main class="min-h-screen bg-gray-50 py-12">
+    <div class="max-w-4xl mx-auto px-4">
+      <h1 class="text-3xl font-bold text-primary mb-8">Site Settings</h1>
+      
+      <!-- Login Background Section -->
+      <div class="bg-white p-6 rounded-lg shadow-md mb-8">
+        <h2 class="text-xl font-semibold mb-6">Login Page Background</h2>
+        
+        <div id="currentBackground" class="mb-6">
+          <p class="text-sm font-medium text-gray-700 mb-2">Current Background:</p>
+          <div class="relative h-48 bg-gray-100 rounded-lg overflow-hidden">
+            <img
+              id="previewImage"
+              src={settings?.loginBackgroundUrl}
+              alt="Login background"
+              class="w-full h-full object-cover"
+            />
+          </div>
+        </div>
+
+        <form id="backgroundForm" class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">
+              Select from uploaded images:
+            </label>
+            <select
+              id="imageSelect"
+              class="w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50"
+            >
+              <option value="">Loading images...</option>
+            </select>
+          </div>
+
+          <button
+            type="submit"
+            class="w-full bg-primary text-white py-2 px-4 rounded-md hover:bg-opacity-90 transition-colors"
+          >
+            Save Changes
+          </button>
+        </form>
+      </div>
+
+      <!-- About Section Settings -->
+      <div class="bg-white p-6 rounded-lg shadow-md">
+        <h2 class="text-xl font-semibold mb-6">About Section</h2>
+        
+        <form id="aboutForm" class="space-y-6">
+          <!-- About Image -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">About Image</label>
+            <div class="mb-4">
+              <img
+                id="aboutImagePreview"
+                src={settings?.aboutImage || 'https://placekitten.com/400/400'}
+                alt="About section"
+                class="w-48 h-48 object-cover rounded-lg shadow-md"
+              />
+            </div>
+            <select
+              id="aboutImageSelect"
+              class="w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50"
+            >
+              <option value="">Loading images...</option>
+            </select>
+          </div>
+
+          <!-- About Text -->
+          <div>
+            <label for="aboutText" class="block text-sm font-medium text-gray-700 mb-2">About Text</label>
+            <textarea
+              id="aboutText"
+              rows="6"
+              class="w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50"
+              placeholder="Enter your about text here..."
+            >{settings?.aboutText}</textarea>
+          </div>
+
+          <button
+            type="submit"
+            class="w-full bg-primary text-white py-2 px-4 rounded-md hover:bg-opacity-90 transition-colors"
+          >
+            Save About Section
+          </button>
+        </form>
+      </div>
+    </div>
+  </main>
+</Layout>
+
+<script>
+  import { db, getSiteSettings, updateSiteSettings } from '../../lib/firebase';
+  import { collection, getDocs, orderBy, query } from 'firebase/firestore';
+  import type { ImageMetadata } from '../../lib/firebase';
+
+  const imageSelect = document.getElementById('imageSelect') as HTMLSelectElement;
+  const aboutImageSelect = document.getElementById('aboutImageSelect') as HTMLSelectElement;
+  const previewImage = document.getElementById('previewImage') as HTMLImageElement;
+  const aboutImagePreview = document.getElementById('aboutImagePreview') as HTMLImageElement;
+  const aboutText = document.getElementById('aboutText') as HTMLTextAreaElement;
+  const backgroundForm = document.getElementById('backgroundForm');
+  const aboutForm = document.getElementById('aboutForm');
+
+  // Load current settings and images
+  const initialize = async () => {
+    try {
+      // Load current settings
+      const settings = await getSiteSettings();
+
+      // Load available images
+      const imagesQuery = query(
+        collection(db, 'images'),
+        orderBy('createdAt', 'desc')
+      );
+      
+      const querySnapshot = await getDocs(imagesQuery);
+      const images = querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      } as ImageMetadata));
+
+      // Update background select options
+      imageSelect.innerHTML = `
+        <option value="">Select an image</option>
+        ${images.map(img => `
+          <option value="${img.url}" ${img.url === settings?.loginBackgroundUrl ? 'selected' : ''}>
+            ${img.description || img.fileName || 'Untitled image'}
+          </option>
+        `).join('')}
+      `;
+
+      // Update about image select options
+      aboutImageSelect.innerHTML = `
+        <option value="">Select an image</option>
+        ${images.map(img => `
+          <option value="${img.url}" ${img.url === settings?.aboutImage ? 'selected' : ''}>
+            ${img.description || img.fileName || 'Untitled image'}
+          </option>
+        `).join('')}
+      `;
+
+      // Set current values
+      if (settings?.loginBackgroundUrl) {
+        previewImage.src = settings.loginBackgroundUrl;
+      }
+      if (settings?.aboutImage) {
+        aboutImagePreview.src = settings.aboutImage;
+      }
+      if (settings?.aboutText) {
+        aboutText.value = settings.aboutText;
+      }
+    } catch (error) {
+      console.error('Failed to initialize settings:', error);
+      alert('Failed to load settings. Please try again.');
+    }
+  };
+
+  // Handle background form submission
+  backgroundForm?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const selectedUrl = imageSelect.value;
+    if (!selectedUrl) {
+      alert('Please select an image');
+      return;
+    }
+
+    try {
+      await updateSiteSettings({
+        loginBackgroundUrl: selectedUrl
+      });
+      
+      previewImage.src = selectedUrl;
+      alert('Login background updated successfully');
+    } catch (error) {
+      console.error('Failed to update settings:', error);
+      alert('Failed to update settings. Please try again.');
+    }
+  });
+
+  // Handle about form submission
+  aboutForm?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const selectedImage = aboutImageSelect.value;
+    const text = aboutText.value;
+
+    if (!selectedImage || !text) {
+      alert('Please select an image and enter about text');
+      return;
+    }
+
+    try {
+      await updateSiteSettings({
+        aboutImage: selectedImage,
+        aboutText: text
+      });
+
+      aboutImagePreview.src = selectedImage;
+      alert('About section updated successfully');
+    } catch (error) {
+      console.error('Failed to update about section:', error);
+      alert('Failed to update about section. Please try again.');
+    }
+  });
+
+  // Preview about image when selected
+  aboutImageSelect?.addEventListener('change', (e) => {
+    const selectedUrl = (e.target as HTMLSelectElement).value;
+    if (selectedUrl) {
+      aboutImagePreview.src = selectedUrl;
+    }
+  });
+
+  // Initialize the page
+  initialize();
+</script>

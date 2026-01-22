@@ -1,0 +1,300 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Navbar from '../components/Navbar.astro';
+import { Gallery } from '../components/Gallery';
+import { ErrorBoundary } from '../components/ErrorBoundary';
+
+// Default settings for server-side rendering
+const defaultSettings = {
+  aboutImage: 'https://placekitten.com/400/400',
+  aboutText: 'About text coming soon...'
+};
+---
+
+<Layout title="Haggai Yechiel | Photography Portfolio">
+  <Navbar />
+  <main class="bg-gray-50 min-h-screen">
+    <section class="container mx-auto px-4 py-8">
+      <ErrorBoundary client:load>
+        <Gallery client:load />
+      </ErrorBoundary>
+    </section>
+
+    <section id="about" class="bg-white dark:bg-dark-primary py-16 relative">
+      <!-- Floating Edit Button -->
+      <button
+        id="editAboutBtn"
+        class="hidden fixed bottom-20 right-4 bg-primary text-white p-3 rounded-full shadow-lg hover:bg-opacity-90 transition-all z-50"
+        title="Edit About Section"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
+        </svg>
+      </button>
+
+      <!-- Edit Modal -->
+      <div id="editModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white dark:bg-dark-primary rounded-lg p-6 max-w-2xl w-full mx-4">
+          <h3 class="text-xl font-bold text-primary dark:text-dark-primary mb-4">Edit About Section</h3>
+          <div class="space-y-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 dark:text-dark-secondary mb-2">Profile Image</label>
+              <div class="flex items-center space-x-4">
+                <div class="relative w-24 h-24">
+                  <img
+                    id="aboutImagePreview"
+                    src={defaultSettings.aboutImage}
+                    alt="Profile preview"
+                    class="w-24 h-24 rounded-full object-cover"
+                  />
+                  <label for="aboutImageUpload" class="absolute bottom-0 right-0 bg-primary text-white p-2 rounded-full cursor-pointer hover:bg-opacity-90">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" />
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0zM18.75 10.5h.008v.008h-.008V10.5z" />
+                    </svg>
+                  </label>
+                  <input
+                    type="file"
+                    id="aboutImageUpload"
+                    accept="image/*"
+                    class="hidden"
+                  />
+                </div>
+                <div id="uploadProgress" class="hidden flex-1 space-y-2">
+                  <div class="w-full bg-gray-200 rounded-full h-2">
+                    <div class="bg-primary h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+                  </div>
+                  <p class="text-sm text-gray-600 dark:text-dark-secondary" id="uploadStatus"></p>
+                </div>
+              </div>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 dark:text-dark-secondary mb-2">About Text</label>
+              <textarea
+                id="aboutTextEdit"
+                rows="6"
+                class="w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50 dark:bg-dark-secondary dark:text-dark-primary text-right"
+                dir="rtl"
+              ></textarea>
+            </div>
+            <div class="flex justify-end space-x-3">
+              <button
+                id="cancelEdit"
+                class="px-4 py-2 text-gray-600 dark:text-dark-secondary hover:text-gray-800 dark:hover:text-dark-primary"
+              >
+                Cancel
+              </button>
+              <button
+                id="saveEdit"
+                class="px-4 py-2 bg-primary text-white rounded-md hover:bg-opacity-90 transition-colors"
+              >
+                Save Changes
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="container mx-auto px-4">
+        <div class="flex flex-col md:flex-row items-center gap-12">
+          <div class="w-full md:w-1/4 flex justify-center">
+            <div class="relative w-64 h-64">
+              <div class="absolute inset-0 bg-primary rounded-full opacity-10"></div>
+              <img
+                src={defaultSettings.aboutImage}
+                alt="Haggai Yechiel"
+                class="w-56 h-56 rounded-full object-cover absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 shadow-xl border-4 border-white dark:border-dark-primary"
+                id="aboutImage"
+              />
+            </div>
+          </div>
+          <div class="w-full md:w-3/4">
+            <h2 class="text-3xl font-bold text-primary dark:text-dark-primary mb-4 font-display text-right">About Me</h2>
+            <div class="text-gray-600 dark:text-dark-secondary space-y-4 whitespace-pre-wrap text-right" dir="rtl" id="aboutText">
+              {defaultSettings.aboutText}
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Scroll to Top Button -->
+    <button
+      id="scrollToTop"
+      class="fixed bottom-4 right-4 bg-white dark:bg-dark-primary text-gray-600 dark:text-dark-primary p-2 rounded-full shadow-lg opacity-0 transition-opacity duration-300 hover:bg-gray-100 dark:hover:bg-gray-800"
+      aria-label="Scroll to top"
+    >
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 15.75l7.5-7.5 7.5 7.5" />
+      </svg>
+    </button>
+  </main>
+</Layout>
+
+<script>
+  import { getSiteSettings, updateSiteSettings, getCurrentUser, checkAdminStatus, storage } from '../lib/firebase';
+  import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
+
+  // Update content with actual settings on client side
+  const updateContent = async () => {
+    try {
+      const settings = await getSiteSettings();
+      if (settings) {
+        const aboutImage = document.getElementById('aboutImage') as HTMLImageElement;
+        const aboutImagePreview = document.getElementById('aboutImagePreview') as HTMLImageElement;
+        const aboutText = document.getElementById('aboutText');
+        const aboutTextEdit = document.getElementById('aboutTextEdit') as HTMLTextAreaElement;
+        
+        if (settings.aboutImage) {
+          aboutImage.src = settings.aboutImage;
+          aboutImagePreview.src = settings.aboutImage;
+        }
+        if (settings.aboutText) {
+          aboutText!.textContent = settings.aboutText;
+          aboutTextEdit.value = settings.aboutText;
+        }
+      }
+    } catch (error) {
+      console.error('Failed to load settings:', error);
+    }
+  };
+
+  // Check if user is admin and show edit button
+  const checkAdmin = async () => {
+    const user = await getCurrentUser();
+    if (user) {
+      const isAdmin = await checkAdminStatus(user);
+      if (isAdmin) {
+        const editBtn = document.getElementById('editAboutBtn');
+        editBtn?.classList.remove('hidden');
+      }
+    }
+  };
+
+  // Handle image upload
+  const handleImageUpload = async (file: File) => {
+    const progressBar = document.querySelector('#uploadProgress div') as HTMLElement;
+    const uploadStatus = document.getElementById('uploadStatus');
+    const progressContainer = document.getElementById('uploadProgress');
+    const aboutImagePreview = document.getElementById('aboutImagePreview') as HTMLImageElement;
+    
+    progressContainer?.classList.remove('hidden');
+    
+    try {
+      const storageRef = ref(storage, `about/${Date.now()}-${file.name}`);
+      const uploadTask = uploadBytesResumable(storageRef, file);
+
+      uploadTask.on('state_changed',
+        (snapshot) => {
+          const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+          progressBar.style.width = `${progress}%`;
+          uploadStatus!.textContent = `Uploading: ${Math.round(progress)}%`;
+        },
+        (error) => {
+          console.error('Upload failed:', error);
+          uploadStatus!.textContent = 'Upload failed';
+          progressBar.style.backgroundColor = '#EF4444'; // Red color for error
+        },
+        async () => {
+          const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+          aboutImagePreview.src = downloadURL;
+          progressContainer?.classList.add('hidden');
+          
+          // Update settings with new image URL
+          await updateSiteSettings({
+            aboutImage: downloadURL
+          });
+          
+          // Update main image
+          const aboutImage = document.getElementById('aboutImage') as HTMLImageElement;
+          aboutImage.src = downloadURL;
+        }
+      );
+    } catch (error) {
+      console.error('Failed to upload image:', error);
+      uploadStatus!.textContent = 'Upload failed';
+      progressBar.style.backgroundColor = '#EF4444';
+    }
+  };
+
+  // Initialize edit functionality
+  const initializeEdit = () => {
+    const editBtn = document.getElementById('editAboutBtn');
+    const editModal = document.getElementById('editModal');
+    const cancelBtn = document.getElementById('cancelEdit');
+    const saveBtn = document.getElementById('saveEdit');
+    const aboutTextEdit = document.getElementById('aboutTextEdit') as HTMLTextAreaElement;
+    const imageUpload = document.getElementById('aboutImageUpload') as HTMLInputElement;
+
+    editBtn?.addEventListener('click', () => {
+      editModal?.classList.remove('hidden');
+    });
+
+    cancelBtn?.addEventListener('click', () => {
+      editModal?.classList.add('hidden');
+    });
+
+    saveBtn?.addEventListener('click', async () => {
+      try {
+        await updateSiteSettings({
+          aboutText: aboutTextEdit.value
+        });
+
+        // Update the content
+        const aboutText = document.getElementById('aboutText');
+        aboutText!.textContent = aboutTextEdit.value;
+
+        editModal?.classList.add('hidden');
+        alert('About section updated successfully');
+      } catch (error) {
+        console.error('Failed to update about section:', error);
+        alert('Failed to update about section. Please try again.');
+      }
+    });
+
+    // Handle image upload
+    imageUpload?.addEventListener('change', (e) => {
+      const files = (e.target as HTMLInputElement).files;
+      if (files && files[0]) {
+        handleImageUpload(files[0]);
+      }
+    });
+
+    // Close modal when clicking outside
+    editModal?.addEventListener('click', (e) => {
+      if (e.target === editModal) {
+        editModal.classList.add('hidden');
+      }
+    });
+  };
+
+  // Initialize everything when the page loads
+  const initialize = async () => {
+    await updateContent();
+    await checkAdmin();
+    initializeEdit();
+  };
+
+  initialize();
+
+  const scrollToTopBtn = document.getElementById('scrollToTop');
+
+  // Show button when scrolling down
+  window.addEventListener('scroll', () => {
+    if (window.scrollY > 200) {
+      scrollToTopBtn?.classList.remove('opacity-0');
+      scrollToTopBtn?.classList.add('opacity-100');
+    } else {
+      scrollToTopBtn?.classList.remove('opacity-100');
+      scrollToTopBtn?.classList.add('opacity-0');
+    }
+  });
+
+  // Scroll to top when clicking the button
+  scrollToTopBtn?.addEventListener('click', () => {
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth'
+    });
+  });
+</script>

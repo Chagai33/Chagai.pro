@@ -1,0 +1,290 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Navbar from '../../components/Navbar.astro';
+import { ErrorBoundary } from '../../components/ErrorBoundary';
+import { LoadingSpinner } from '../../components/LoadingSpinner';
+import { Toast } from '../../components/Toast';
+---
+
+<Layout title="Admin Dashboard | PhotoFolio">
+  <ErrorBoundary client:load>
+    <Navbar />
+    <div id="loadingScreen" class="fixed inset-0 bg-white bg-opacity-75 flex items-center justify-center z-50">
+      <LoadingSpinner size="large" client:load />
+    </div>
+    
+    <main id="adminContent" class="min-h-screen bg-gray-50 py-12 hidden" dir="ltr">
+      <div class="max-w-7xl mx-auto px-4">
+        <h1 class="text-3xl font-bold text-primary mb-8">Admin Dashboard</h1>
+        
+        <!-- Upload Images Section -->
+        <div class="bg-white p-6 rounded-lg shadow-md mb-8">
+          <h2 class="text-xl font-semibold mb-4">Upload Images</h2>
+          <form id="uploadForm" class="space-y-4">
+            <div>
+              <label for="images" class="block text-sm font-medium text-gray-700">Images</label>
+              <input
+                type="file"
+                id="images"
+                name="images"
+                accept="image/*"
+                multiple
+                required
+                class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-white hover:file:bg-primary/90"
+              />
+            </div>
+            <button
+              type="submit"
+              class="w-full bg-primary text-white py-2 px-4 rounded-md hover:bg-opacity-90 transition-colors"
+            >
+              Upload
+            </button>
+          </form>
+          
+          <!-- Upload Progress -->
+          <div id="uploadProgress" class="hidden space-y-4 mt-4">
+            <div class="flex justify-between text-sm text-gray-600 mb-1">
+              <span id="uploadCounter">0/0 images uploaded</span>
+              <span id="uploadPercentage">0%</span>
+            </div>
+            <div class="w-full bg-gray-200 rounded-full h-2.5">
+              <div class="bg-primary h-2.5 rounded-full transition-all duration-300" style="width: 0%"></div>
+            </div>
+            <p id="uploadStatus" class="text-sm text-gray-600"></p>
+          </div>
+        </div>
+
+        <!-- Image Preview and Management -->
+        <div id="imagePreviewContainer" class="hidden bg-white p-6 rounded-lg shadow-md">
+          <h2 class="text-xl font-semibold mb-4">Image Details</h2>
+          <div id="imagePreviewGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+        </div>
+      </div>
+    </main>
+
+    <!-- Toast Container -->
+    <div id="toastContainer"></div>
+  </ErrorBoundary>
+</Layout>
+
+<script>
+  import { 
+    getCurrentUser, 
+    checkAdminStatus,
+    uploadImage,
+    updateImageMetadata,
+    type ImageUploadProgress,
+    type ImageMetadata
+  } from '../../lib/firebase';
+
+  let toastTimeout: number;
+
+  const showToast = (message: string, type: 'success' | 'error' | 'info') => {
+    const toastContainer = document.getElementById('toastContainer');
+    if (!toastContainer) return;
+
+    clearTimeout(toastTimeout);
+    toastContainer.innerHTML = '';
+
+    const toast = document.createElement('div');
+    toast.className = `
+      fixed bottom-4 right-4 p-4 rounded-lg border shadow-lg
+      ${type === 'success' ? 'bg-green-100 text-green-800 border-green-300' :
+      type === 'error' ? 'bg-red-100 text-red-800 border-red-300' :
+      'bg-blue-100 text-blue-800 border-blue-300'}
+    `;
+    
+    toast.innerHTML = `
+      <div class="flex items-center justify-between">
+        <p class="mr-4">${message}</p>
+        <button class="text-gray-500 hover:text-gray-700">×</button>
+      </div>
+    `;
+
+    toastContainer.appendChild(toast);
+
+    const closeBtn = toast.querySelector('button');
+    closeBtn?.addEventListener('click', () => {
+      toast.remove();
+    });
+
+    toastTimeout = setTimeout(() => {
+      toast.remove();
+    }, 3000);
+  };
+
+  // Initialize admin dashboard
+  const init = async () => {
+    const loadingScreen = document.getElementById('loadingScreen');
+    const adminContent = document.getElementById('adminContent');
+
+    try {
+      const user = await getCurrentUser();
+      if (!user) {
+        window.location.href = '/login';
+        return;
+      }
+
+      const isAdmin = await checkAdminStatus(user);
+      if (!isAdmin) {
+        window.location.href = '/';
+        return;
+      }
+
+      loadingScreen?.classList.add('hidden');
+      adminContent?.classList.remove('hidden');
+    } catch (error) {
+      console.error('Error initializing admin dashboard:', error);
+      showToast('Failed to initialize dashboard', 'error');
+    }
+  };
+
+  init();
+
+  // Handle image upload
+  const uploadForm = document.getElementById('uploadForm');
+  const progressBar = document.querySelector('#uploadProgress div') as HTMLElement;
+  const progressContainer = document.getElementById('uploadProgress');
+  const uploadStatus = document.getElementById('uploadStatus');
+  const uploadCounter = document.getElementById('uploadCounter');
+  const uploadPercentage = document.getElementById('uploadPercentage');
+  const imagePreviewContainer = document.getElementById('imagePreviewContainer');
+  const imagePreviewGrid = document.getElementById('imagePreviewGrid');
+
+  uploadForm?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const fileInput = document.getElementById('images') as HTMLInputElement;
+    
+    if (!fileInput.files?.length) {
+      showToast('Please select at least one image', 'error');
+      return;
+    }
+
+    progressContainer?.classList.remove('hidden');
+    imagePreviewGrid!.innerHTML = '';
+    imagePreviewContainer?.classList.remove('hidden');
+    
+    const files = Array.from(fileInput.files);
+    let successCount = 0;
+    let failCount = 0;
+    const totalFiles = files.length;
+
+    for (const [index, file] of files.entries()) {
+      try {
+        const image = await uploadImage(file, (progress) => {
+          progressBar.style.width = `${progress.progress}%`;
+          if (progress.status === 'running') {
+            uploadCounter!.textContent = `${successCount}/${totalFiles} images uploaded`;
+            uploadStatus!.textContent = `Uploading ${file.name}: ${Math.round(progress.progress)}%`;
+            uploadPercentage!.textContent = `${Math.round(progress.progress)}%`;
+          }
+        });
+
+        const previewCard = createImagePreviewCard(image);
+        imagePreviewGrid?.appendChild(previewCard);
+        successCount++;
+        uploadCounter!.textContent = `${successCount}/${totalFiles} images uploaded`;
+      } catch (error) {
+        console.error(`Failed to upload ${file.name}:`, error);
+        failCount++;
+      }
+    }
+
+    // Show final status
+    if (successCount > 0) {
+      showToast(`Successfully uploaded ${successCount} image${successCount > 1 ? 's' : ''}`, 'success');
+    }
+    if (failCount > 0) {
+      showToast(`Failed to upload ${failCount} image${failCount > 1 ? 's' : ''}`, 'error');
+    }
+
+    // Reset form
+    fileInput.value = '';
+    progressContainer?.classList.add('hidden');
+    progressBar.style.width = '0%';
+    uploadStatus!.textContent = '';
+    uploadCounter!.textContent = '0/0 images uploaded';
+    uploadPercentage!.textContent = '0%';
+  });
+
+  function createImagePreviewCard(image: ImageMetadata) {
+    const card = document.createElement('div');
+    card.className = 'bg-gray-50 p-4 rounded-lg';
+    card.innerHTML = `
+      <img src="${image.url}" alt="" class="w-full h-48 object-cover rounded-lg mb-4">
+      <div class="space-y-3">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+          <textarea
+            class="w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50"
+            rows="2"
+          >${image.description}</textarea>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Labels (comma separated)</label>
+          <input
+            type="text"
+            value="${image.labels.join(', ')}"
+            class="w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50"
+          >
+        </div>
+        <div class="flex justify-between">
+          <button class="save-btn bg-primary text-white px-4 py-2 rounded-md hover:bg-opacity-90 transition-colors">
+            Save
+          </button>
+          <button class="contact-btn bg-green-600 text-white px-4 py-2 rounded-md hover:bg-opacity-90 transition-colors">
+            Contact
+          </button>
+        </div>
+      </div>
+    `;
+
+    // Save button handler
+    const saveBtn = card.querySelector('.save-btn');
+    saveBtn?.addEventListener('click', async () => {
+      try {
+        const description = (card.querySelector('textarea') as HTMLTextAreaElement).value;
+        const labels = (card.querySelector('input') as HTMLInputElement).value
+          .split(',')
+          .map(label => label.trim())
+          .filter(label => label);
+
+        await updateImageMetadata(image.id, {
+          description,
+          labels
+        });
+
+        showToast('Image details saved successfully', 'success');
+      } catch (error) {
+        console.error('Failed to save image details:', error);
+        showToast('Failed to save image details', 'error');
+      }
+    });
+
+    // Contact button handler
+    const contactBtn = card.querySelector('.contact-btn');
+    contactBtn?.addEventListener('click', () => {
+      const description = (card.querySelector('textarea') as HTMLTextAreaElement).value;
+      const labels = (card.querySelector('input') as HTMLInputElement).value;
+      
+      const subject = 'Image Usage Request';
+      const body = `
+Hello,
+
+I would like to request permission to use the following image:
+
+Image URL: ${image.url}
+Description: ${description}
+Labels: ${labels}
+
+Please let me know if this is possible and any terms of use.
+
+Thank you!
+      `.trim();
+
+      window.location.href = `mailto:chagai33@gmail.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    });
+
+    return card;
+  }
+</script>
