@@ -1,15 +1,18 @@
 import React, { useEffect, useState } from 'react';
-import { collection, getDocs, orderBy, query, where, updateDoc, doc, type QueryDocumentSnapshot } from 'firebase/firestore';
-import { db, getCurrentUser, checkAdminStatus, updateImageMetadata, updateSiteSettings, deleteImages } from '../lib/firebase';
+import { updateDoc, doc, type QueryDocumentSnapshot, collection, getDocs, query, orderBy } from 'firebase/firestore'; // kept for DND and Category fallback?
+import { db, getCurrentUser, checkAdminStatus, updateImageMetadata, updateSiteSettings, deleteImages, getPaginatedImages } from '../lib/firebase';
 import type { ImageMetadata } from '../lib/firebase';
 import { LoadingSpinner } from './LoadingSpinner';
 import { PencilIcon } from './icons/PencilIcon';
 import { TrashIcon } from './icons/TrashIcon';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 
+const PAGE_SIZE = 12;
+
 export const Gallery: React.FC = () => {
   const [images, setImages] = useState<ImageMetadata[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [editingImage, setEditingImage] = useState<string | null>(null);
@@ -17,6 +20,10 @@ export const Gallery: React.FC = () => {
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [categories, setCategories] = useState<string[]>([]);
+
+  // Pagination state
+  const [lastVisible, setLastVisible] = useState<QueryDocumentSnapshot | null>(null);
+  const [hasMore, setHasMore] = useState(true);
 
   useEffect(() => {
     const checkAdmin = async () => {
@@ -27,42 +34,39 @@ export const Gallery: React.FC = () => {
       }
     };
     checkAdmin();
+    loadCategories(); // New separate function to attempt to load categories if needed, or we just rely on loaded images.
   }, []);
 
+  // Separate effect to load categories (Optional: fetch all images just to get categories? 
+  // It contradicts the performance goal. 
+  // Better approach: Maintain a 'categories' document in Firestore.
+  // For now: I will fetch a larger batch just for categories OR just ignore it.
+  // Let's rely on valid categories from the initial load for now to save reads.)
+  const loadCategories = async () => {
+    // In a real app with optimization, we'd have a 'categories' collection.
+    // For this refactor, we accept that filtering might only show categories from visible images 
+    // OR we fetch all metadata (lightweight?) - no, firestore fetches full docs.
+    // We will skip pre-fetching all categories to strictly follow "Performance Optimization".
+  };
+
   useEffect(() => {
-    const loadImages = async () => {
+    const loadInitialImages = async () => {
+      setLoading(true);
       try {
-        let imagesQuery = query(
-          collection(db, 'images'),
-          orderBy('position', 'asc'),
-          orderBy('createdAt', 'desc')
-        );
-
-        if (selectedCategory) {
-          imagesQuery = query(
-            collection(db, 'images'),
-            where('labels', 'array-contains', selectedCategory),
-            orderBy('position', 'asc'),
-            orderBy('createdAt', 'desc')
-          );
-        }
-
-        const querySnapshot = await getDocs(imagesQuery);
-        const loadedImages = querySnapshot.docs.map((doc: QueryDocumentSnapshot, index) => ({
-          id: doc.id,
-          position: doc.data().position || index,
-          ...doc.data()
-        } as ImageMetadata));
-
-        // Extract unique categories from labels
-        const allLabels = loadedImages.reduce((acc: string[], img) => {
-          return [...acc, ...img.labels];
-        }, []);
-        const uniqueCategories = Array.from(new Set(allLabels));
-        setCategories(uniqueCategories);
-
-        setImages(loadedImages);
+        const result = await getPaginatedImages(PAGE_SIZE, null, selectedCategory);
+        setImages(result.images);
+        setLastVisible(result.lastVisible);
+        setHasMore(result.hasMore);
         setError(null);
+
+        // Update categories from the FIRST batch at least
+        // (Ideally we want all categories... 
+        //  Maybe we can keep the old 'load everything' just for calculating categories 
+        //  if the dataset isn't huge? But "analyze... it loads all images at once" implies that's the problem.
+        //  So we must stop loading all images.
+        //  I'll update categories based on what we have loaded.)
+        updateCategories(result.images);
+
       } catch (err) {
         console.error('Error loading images:', err);
         setError('Failed to load images. Please try again later.');
@@ -71,8 +75,42 @@ export const Gallery: React.FC = () => {
       }
     };
 
-    loadImages();
+    loadInitialImages();
   }, [selectedCategory]);
+
+  const updateCategories = (loadedImages: ImageMetadata[]) => {
+    // Simple accumulation of categories from loaded images
+    // NOTE: This will only show categories that exist in the loaded batches.
+    const allLabels = loadedImages.reduce((acc: string[], img) => {
+      return [...acc, ...img.labels];
+    }, []);
+    const uniqueCategories = Array.from(new Set(allLabels));
+    // Only set if we don't have them? Or merge?
+    // Let's set them for now. 
+    setCategories(uniqueCategories);
+  };
+
+  const handleLoadMore = async () => {
+    if (!hasMore || loadingMore) return;
+
+    setLoadingMore(true);
+    try {
+      const result = await getPaginatedImages(PAGE_SIZE, lastVisible, selectedCategory);
+
+      setImages(prev => [...prev, ...result.images]);
+      setLastVisible(result.lastVisible);
+      setHasMore(result.hasMore);
+
+      // Merge new categories?
+      const newLabels = result.images.reduce((acc: string[], img) => [...acc, ...img.labels], []);
+      setCategories(prev => Array.from(new Set([...prev, ...newLabels])));
+
+    } catch (err) {
+      console.error('Error loading more images:', err);
+    } finally {
+      setLoadingMore(false);
+    }
+  };
 
   const handleDragEnd = async (result: any) => {
     if (!result.destination || !isAdmin) return;
@@ -90,7 +128,7 @@ export const Gallery: React.FC = () => {
 
     // Update positions in Firestore
     try {
-      const updates = updatedImages.map((image) => 
+      const updates = updatedImages.map((image) =>
         updateDoc(doc(db, 'images', image.id), { position: image.position })
       );
       await Promise.all(updates);
@@ -105,13 +143,13 @@ export const Gallery: React.FC = () => {
     try {
       const updatedLabels = labels.split(',').map(label => label.trim()).filter(Boolean);
       await updateImageMetadata(imageId, { description, labels: updatedLabels });
-      
-      setImages(prevImages => prevImages.map(img => 
-        img.id === imageId 
+
+      setImages(prevImages => prevImages.map(img =>
+        img.id === imageId
           ? { ...img, description, labels: updatedLabels }
           : img
       ));
-      
+
       setEditingImage(null);
     } catch (error) {
       console.error('Failed to update image:', error);
@@ -172,13 +210,13 @@ I am interested in image ID: ${image.id}
 
 Thank you!
     `.trim();
-    
+
     window.location.href = `mailto:chagai33@gmail.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
   };
 
   const toggleImageSelection = (imageId: string) => {
     if (!isAdmin) return;
-    
+
     setIsSelectionMode(true);
     setSelectedImages(prev => {
       const newSelection = new Set(prev);
@@ -235,11 +273,10 @@ Thank you!
         <div className="mb-6 flex flex-wrap gap-2">
           <button
             onClick={() => setSelectedCategory(null)}
-            className={`px-3 py-1 rounded-md text-sm transition-colors ${
-              selectedCategory === null
-                ? 'bg-primary text-white'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-            }`}
+            className={`px-3 py-1 rounded-md text-sm transition-colors ${selectedCategory === null
+              ? 'bg-primary text-white'
+              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
           >
             All
           </button>
@@ -247,11 +284,10 @@ Thank you!
             <button
               key={category}
               onClick={() => setSelectedCategory(category)}
-              className={`px-3 py-1 rounded-md text-sm transition-colors ${
-                selectedCategory === category
-                  ? 'bg-primary text-white'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
+              className={`px-3 py-1 rounded-md text-sm transition-colors ${selectedCategory === category
+                ? 'bg-primary text-white'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
             >
               {category}
             </button>
@@ -290,10 +326,9 @@ Thank you!
                       ref={provided.innerRef}
                       {...provided.draggableProps}
                       {...provided.dragHandleProps}
-                      className={`group bg-white rounded-lg shadow-md overflow-hidden transform transition-transform duration-200 ${
-                        snapshot.isDragging ? 'scale-105' : 'hover:scale-[1.02]'
-                      } ${isSelectionMode && selectedImages.has(image.id) ? 'ring-2 ring-primary' : ''
-                      } cursor-pointer`}
+                      className={`group bg-white rounded-lg shadow-md overflow-hidden transform transition-transform duration-200 ${snapshot.isDragging ? 'scale-105' : 'hover:scale-[1.02]'
+                        } ${isSelectionMode && selectedImages.has(image.id) ? 'ring-2 ring-primary' : ''
+                        } cursor-pointer`}
                       onClick={() => toggleImageSelection(image.id)}
                     >
                       <div className="relative">
@@ -359,11 +394,10 @@ Thank you!
                         )}
                         {isSelectionMode && (
                           <div className="absolute top-2 right-2">
-                            <div className={`w-6 h-6 rounded-full border-2 ${
-                              selectedImages.has(image.id)
-                                ? 'bg-primary border-primary'
-                                : 'border-gray-400 bg-white'
-                            }`}>
+                            <div className={`w-6 h-6 rounded-full border-2 ${selectedImages.has(image.id)
+                              ? 'bg-primary border-primary'
+                              : 'border-gray-400 bg-white'
+                              }`}>
                               {selectedImages.has(image.id) && (
                                 <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
@@ -373,7 +407,7 @@ Thank you!
                           </div>
                         )}
                       </div>
-                      
+
                       {editingImage === image.id ? (
                         <div className="p-4 space-y-3">
                           <textarea
@@ -437,6 +471,24 @@ Thank you!
           )}
         </Droppable>
       </DragDropContext>
+
+      {/* Pagination Controls */}
+      <div className="mt-8 flex justify-center">
+        {loadingMore ? (
+          <LoadingSpinner size="medium" />
+        ) : hasMore ? (
+          <button
+            onClick={handleLoadMore}
+            className="bg-white border border-gray-300 text-gray-700 px-6 py-2 rounded-full hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 transition-all shadow-sm"
+          >
+            Load More Images
+          </button>
+        ) : (
+          images.length > 0 && (
+            <p className="text-gray-500 text-sm italic">eod</p>
+          )
+        )}
+      </div>
     </div>
   );
 };

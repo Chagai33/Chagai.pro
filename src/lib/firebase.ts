@@ -1,17 +1,17 @@
 import { initializeApp, getApps, type FirebaseApp } from 'firebase/app';
-import { 
-  getAuth, 
-  createUserWithEmailAndPassword, 
-  signInWithEmailAndPassword, 
+import {
+  getAuth,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
   onAuthStateChanged,
   signOut,
   type Auth,
   type User
 } from 'firebase/auth';
-import { 
-  getFirestore, 
-  doc, 
-  setDoc, 
+import {
+  getFirestore,
+  doc,
+  setDoc,
   getDoc,
   collection,
   query,
@@ -19,7 +19,11 @@ import {
   getDocs,
   updateDoc,
   deleteDoc,
-  type Firestore
+  limit,
+  startAfter,
+  orderBy,
+  type Firestore,
+  type QueryDocumentSnapshot
 } from 'firebase/firestore';
 import { getStorage, ref, uploadBytesResumable, getDownloadURL, deleteObject, type FirebaseStorage } from 'firebase/storage';
 
@@ -173,7 +177,7 @@ export const uploadImage = async (
 
             const docRef = doc(collection(db, 'images'));
             await setDoc(docRef, imageData);
-            
+
             onProgress?.({
               progress: 100,
               status: 'success'
@@ -191,8 +195,77 @@ export const uploadImage = async (
   }
 };
 
+// Pagination result type
+export interface PaginatedImagesResult {
+  images: ImageMetadata[];
+  lastVisible: QueryDocumentSnapshot | null;
+  hasMore: boolean;
+}
+
+export const getPaginatedImages = async (
+  pageSize: number,
+  lastVisible: QueryDocumentSnapshot | null = null,
+  category: string | null = null
+): Promise<PaginatedImagesResult> => {
+  if (!db) throw new Error('Firestore is not initialized');
+
+  try {
+    let imagesQuery;
+    const imagesCollection = collection(db, 'images');
+
+    // Base constraints
+    const constraints: any[] = [];
+
+    if (category) {
+      constraints.push(where('labels', 'array-contains', category));
+    }
+
+    // Ordering
+    // Note: If filtering by array-contains (labels), you often need the index to match. 
+    // Usually 'position' asc, 'createdAt' desc is what we want.
+    // However, array-contains queries require the field to be the first orderBy field? 
+    // No, but composite indexes might be needed.
+    // Let's stick to the original order: orderBy('position', 'asc'), orderBy('createdAt', 'desc')
+    constraints.push(orderBy('position', 'asc'));
+    constraints.push(orderBy('createdAt', 'desc'));
+
+    // Pagination
+    if (lastVisible) {
+      constraints.push(startAfter(lastVisible));
+    }
+
+    constraints.push(limit(pageSize));
+
+    imagesQuery = query(imagesCollection, ...constraints);
+
+    const querySnapshot = await getDocs(imagesQuery);
+    const images = querySnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    } as ImageMetadata));
+
+    const newLastVisible = querySnapshot.docs.length > 0
+      ? querySnapshot.docs[querySnapshot.docs.length - 1]
+      : null;
+
+    // Simple check: if we got fewer than requested, there's definitely no more.
+    // If we got exactly pageSize, there MIGHT be more. 
+    // A robust way works by fetching pageSize + 1, but for now this is standard.
+    const hasMore = querySnapshot.docs.length === pageSize;
+
+    return {
+      images,
+      lastVisible: newLastVisible,
+      hasMore
+    };
+  } catch (error) {
+    console.error('Error fetching paginated images:', error);
+    throw new Error(`Failed to fetch images: ${error}`);
+  }
+};
+
 export const updateImageMetadata = async (
-  imageId: string, 
+  imageId: string,
   metadata: Partial<ImageMetadata>
 ): Promise<void> => {
   if (!db) throw new Error('Firestore is not initialized');
@@ -213,7 +286,7 @@ export const deleteImages = async (imageIds: string[]): Promise<void> => {
       if (!imageDoc.exists()) continue;
 
       const imageData = imageDoc.data() as ImageMetadata;
-      
+
       const storageRef = ref(storage, imageData.url);
       await deleteObject(storageRef);
       await deleteDoc(doc(db, 'images', imageId));
@@ -229,7 +302,7 @@ export const updateSiteSettings = async (settings: Partial<SiteSettings>): Promi
   try {
     const settingsRef = doc(db, 'settings', 'site');
     const settingsDoc = await getDoc(settingsRef);
-    
+
     if (!settingsDoc.exists()) {
       await setDoc(settingsRef, {
         loginBackgroundUrl: 'https://images.unsplash.com/photo-1452421822248-d4c2b47f0c81',
@@ -254,11 +327,11 @@ export const getSiteSettings = async (): Promise<SiteSettings | null> => {
   try {
     const settingsRef = doc(db, 'settings', 'site');
     const settingsDoc = await getDoc(settingsRef);
-    
+
     if (settingsDoc.exists()) {
       return settingsDoc.data() as SiteSettings;
     }
-    
+
     return null;
   } catch (error) {
     console.error('Failed to get site settings:', error);
@@ -269,7 +342,7 @@ export const getSiteSettings = async (): Promise<SiteSettings | null> => {
 // Error handling utilities
 const formatAuthError = (error: AuthError): AuthError => {
   let message: string;
-  
+
   switch (error.code) {
     case 'auth/invalid-email':
       message = 'Invalid email address';
@@ -312,7 +385,7 @@ const initializeAdminUser = async () => {
   try {
     const adminEmail = 'chagai33@gmail.com';
     const userCredential = await createUserWithEmailAndPassword(auth, adminEmail, 'temporaryPassword123');
-    
+
     await setDoc(doc(db, 'users', userCredential.user.uid), {
       email: adminEmail,
       role: 'admin',

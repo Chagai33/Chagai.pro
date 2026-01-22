@@ -2,104 +2,111 @@
 import Layout from '../../layouts/Layout.astro';
 import Navbar from '../../components/Navbar.astro';
 import { ErrorBoundary } from '../../components/ErrorBoundary';
+import { LoadingSpinner } from '../../components/LoadingSpinner';
 import { getSiteSettings } from '../../lib/firebase';
 
 const settings = await getSiteSettings();
 ---
 
 <Layout title="Site Settings | PhotoFolio">
-  <Navbar />
-  <main class="min-h-screen bg-gray-50 py-12">
-    <div class="max-w-4xl mx-auto px-4">
-      <h1 class="text-3xl font-bold text-primary mb-8">Site Settings</h1>
-      
-      <!-- Login Background Section -->
-      <div class="bg-white p-6 rounded-lg shadow-md mb-8">
-        <h2 class="text-xl font-semibold mb-6">Login Page Background</h2>
+  <ErrorBoundary client:load>
+    <Navbar />
+    <div id="loadingScreen" class="fixed inset-0 bg-white bg-opacity-75 flex items-center justify-center z-50">
+      <LoadingSpinner size="large" client:load />
+    </div>
+
+    <main id="settingsContent" class="min-h-screen bg-gray-50 py-12 hidden">
+      <div class="max-w-4xl mx-auto px-4">
+        <h1 class="text-3xl font-bold text-primary mb-8">Site Settings</h1>
         
-        <div id="currentBackground" class="mb-6">
-          <p class="text-sm font-medium text-gray-700 mb-2">Current Background:</p>
-          <div class="relative h-48 bg-gray-100 rounded-lg overflow-hidden">
-            <img
-              id="previewImage"
-              src={settings?.loginBackgroundUrl}
-              alt="Login background"
-              class="w-full h-full object-cover"
-            />
-          </div>
-        </div>
-
-        <form id="backgroundForm" class="space-y-4">
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">
-              Select from uploaded images:
-            </label>
-            <select
-              id="imageSelect"
-              class="w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50"
-            >
-              <option value="">Loading images...</option>
-            </select>
-          </div>
-
-          <button
-            type="submit"
-            class="w-full bg-primary text-white py-2 px-4 rounded-md hover:bg-opacity-90 transition-colors"
-          >
-            Save Changes
-          </button>
-        </form>
-      </div>
-
-      <!-- About Section Settings -->
-      <div class="bg-white p-6 rounded-lg shadow-md">
-        <h2 class="text-xl font-semibold mb-6">About Section</h2>
-        
-        <form id="aboutForm" class="space-y-6">
-          <!-- About Image -->
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">About Image</label>
-            <div class="mb-4">
+        <!-- Login Background Section -->
+        <div class="bg-white p-6 rounded-lg shadow-md mb-8">
+          <h2 class="text-xl font-semibold mb-6">Login Page Background</h2>
+          
+          <div id="currentBackground" class="mb-6">
+            <p class="text-sm font-medium text-gray-700 mb-2">Current Background:</p>
+            <div class="relative h-48 bg-gray-100 rounded-lg overflow-hidden">
               <img
-                id="aboutImagePreview"
-                src={settings?.aboutImage || 'https://placekitten.com/400/400'}
-                alt="About section"
-                class="w-48 h-48 object-cover rounded-lg shadow-md"
+                id="previewImage"
+                src={settings?.loginBackgroundUrl}
+                alt="Login background"
+                class="w-full h-full object-cover"
               />
             </div>
-            <select
-              id="aboutImageSelect"
-              class="w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50"
+          </div>
+
+          <form id="backgroundForm" class="space-y-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">
+                Select from uploaded images:
+              </label>
+              <select
+                id="imageSelect"
+                class="w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50"
+              >
+                <option value="">Loading images...</option>
+              </select>
+            </div>
+
+            <button
+              type="submit"
+              class="w-full bg-primary text-white py-2 px-4 rounded-md hover:bg-opacity-90 transition-colors"
             >
-              <option value="">Loading images...</option>
-            </select>
-          </div>
+              Save Changes
+            </button>
+          </form>
+        </div>
 
-          <!-- About Text -->
-          <div>
-            <label for="aboutText" class="block text-sm font-medium text-gray-700 mb-2">About Text</label>
-            <textarea
-              id="aboutText"
-              rows="6"
-              class="w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50"
-              placeholder="Enter your about text here..."
-            >{settings?.aboutText}</textarea>
-          </div>
+        <!-- About Section Settings -->
+        <div class="bg-white p-6 rounded-lg shadow-md">
+          <h2 class="text-xl font-semibold mb-6">About Section</h2>
+          
+          <form id="aboutForm" class="space-y-6">
+            <!-- About Image -->
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">About Image</label>
+              <div class="mb-4">
+                <img
+                  id="aboutImagePreview"
+                  src={settings?.aboutImage || 'https://placekitten.com/400/400'}
+                  alt="About section"
+                  class="w-48 h-48 object-cover rounded-lg shadow-md"
+                />
+              </div>
+              <select
+                id="aboutImageSelect"
+                class="w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50"
+              >
+                <option value="">Loading images...</option>
+              </select>
+            </div>
 
-          <button
-            type="submit"
-            class="w-full bg-primary text-white py-2 px-4 rounded-md hover:bg-opacity-90 transition-colors"
-          >
-            Save About Section
-          </button>
-        </form>
+            <!-- About Text -->
+            <div>
+              <label for="aboutText" class="block text-sm font-medium text-gray-700 mb-2">About Text</label>
+              <textarea
+                id="aboutText"
+                rows="6"
+                class="w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50"
+                placeholder="Enter your about text here..."
+              >{settings?.aboutText}</textarea>
+            </div>
+
+            <button
+              type="submit"
+              class="w-full bg-primary text-white py-2 px-4 rounded-md hover:bg-opacity-90 transition-colors"
+            >
+              Save About Section
+            </button>
+          </form>
+        </div>
       </div>
-    </div>
-  </main>
+    </main>
+  </ErrorBoundary>
 </Layout>
 
 <script>
-  import { db, getSiteSettings, updateSiteSettings } from '../../lib/firebase';
+  import { db, getSiteSettings, updateSiteSettings, getCurrentUser, checkAdminStatus } from '../../lib/firebase';
   import { collection, getDocs, orderBy, query } from 'firebase/firestore';
   import type { ImageMetadata } from '../../lib/firebase';
 
@@ -113,7 +120,24 @@ const settings = await getSiteSettings();
 
   // Load current settings and images
   const initialize = async () => {
+    const loadingScreen = document.getElementById('loadingScreen');
+    const settingsContent = document.getElementById('settingsContent');
+
     try {
+      // 1. Auth Check
+      const user = await getCurrentUser();
+      if (!user) {
+        window.location.href = '/login';
+        return;
+      }
+
+      const isAdmin = await checkAdminStatus(user);
+      if (!isAdmin) {
+        window.location.href = '/';
+        return;
+      }
+
+      // 2. Load Data
       // Load current settings
       const settings = await getSiteSettings();
 
@@ -159,6 +183,11 @@ const settings = await getSiteSettings();
       if (settings?.aboutText) {
         aboutText.value = settings.aboutText;
       }
+
+      // 3. Show Content
+      loadingScreen?.classList.add('hidden');
+      settingsContent?.classList.remove('hidden');
+
     } catch (error) {
       console.error('Failed to initialize settings:', error);
       alert('Failed to load settings. Please try again.');
