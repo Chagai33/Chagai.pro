@@ -11,16 +11,16 @@ const settings = await getSiteSettings();
 <Layout title="Site Settings | PhotoFolio">
   <ErrorBoundary client:load>
     <Navbar />
-    <div id="loadingScreen" class="fixed inset-0 bg-white bg-opacity-75 flex items-center justify-center z-50">
+    <div id="loadingScreen" class="fixed inset-0 bg-white dark:bg-dark-primary bg-opacity-75 dark:bg-opacity-90 flex items-center justify-center z-50">
       <LoadingSpinner size="large" client:load />
     </div>
 
-    <main id="settingsContent" class="min-h-screen bg-gray-50 py-12 hidden">
+    <main id="settingsContent" class="min-h-screen bg-gray-50 dark:bg-dark-primary py-12 hidden">
       <div class="max-w-4xl mx-auto px-4">
         <h1 class="text-3xl font-bold text-primary mb-8">Site Settings</h1>
         
         <!-- Login Background Section -->
-        <div class="bg-white p-6 rounded-lg shadow-md mb-8">
+        <div class="bg-white dark:bg-dark-secondary p-6 rounded-lg shadow-md mb-8">
           <h2 class="text-xl font-semibold mb-6">Login Page Background</h2>
           
           <div id="currentBackground" class="mb-6">
@@ -58,7 +58,7 @@ const settings = await getSiteSettings();
         </div>
 
         <!-- About Section Settings -->
-        <div class="bg-white p-6 rounded-lg shadow-md">
+        <div class="bg-white dark:bg-dark-secondary p-6 rounded-lg shadow-md">
           <h2 class="text-xl font-semibold mb-6">About Section</h2>
           
           <form id="aboutForm" class="space-y-6">

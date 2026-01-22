@@ -226,7 +226,7 @@ export const getPaginatedImages = async (
     // However, array-contains queries require the field to be the first orderBy field? 
     // No, but composite indexes might be needed.
     // Let's stick to the original order: orderBy('position', 'asc'), orderBy('createdAt', 'desc')
-    constraints.push(orderBy('position', 'asc'));
+    // constraints.push(orderBy('position', 'asc')); // Commented out to prevent hiding images without 'position'
     constraints.push(orderBy('createdAt', 'desc'));
 
     // Pagination
@@ -235,6 +235,9 @@ export const getPaginatedImages = async (
     }
 
     constraints.push(limit(pageSize));
+
+    console.log('Fetching images with constraints:', { category, pageSize, lastVisible });
+
 
     imagesQuery = query(imagesCollection, ...constraints);
 

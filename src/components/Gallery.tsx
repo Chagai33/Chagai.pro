@@ -269,31 +269,7 @@ Thank you!
 
   return (
     <div>
-      {categories.length > 0 && (
-        <div className="mb-6 flex flex-wrap gap-2">
-          <button
-            onClick={() => setSelectedCategory(null)}
-            className={`px-3 py-1 rounded-md text-sm transition-colors ${selectedCategory === null
-              ? 'bg-primary text-white'
-              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
-          >
-            All
-          </button>
-          {categories.map(category => (
-            <button
-              key={category}
-              onClick={() => setSelectedCategory(category)}
-              className={`px-3 py-1 rounded-md text-sm transition-colors ${selectedCategory === category
-                ? 'bg-primary text-white'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
-            >
-              {category}
-            </button>
-          ))}
-        </div>
-      )}
+      {/* Categories block removed as per user request */}
 
       {isAdmin && selectedImages.size > 0 && (
         <div className="mb-6 flex justify-end">
@@ -326,7 +302,7 @@ Thank you!
                       ref={provided.innerRef}
                       {...provided.draggableProps}
                       {...provided.dragHandleProps}
-                      className={`group bg-white rounded-lg shadow-md overflow-hidden transform transition-transform duration-200 ${snapshot.isDragging ? 'scale-105' : 'hover:scale-[1.02]'
+                      className={`group bg-white dark:bg-dark-secondary rounded-lg shadow-md overflow-hidden transform transition-transform duration-200 ${snapshot.isDragging ? 'scale-105' : 'hover:scale-[1.02]'
                         } ${isSelectionMode && selectedImages.has(image.id) ? 'ring-2 ring-primary' : ''
                         } cursor-pointer`}
                       onClick={() => toggleImageSelection(image.id)}
@@ -348,7 +324,7 @@ Thank you!
                               e.stopPropagation();
                               handleContact(image);
                             }}
-                            className="absolute top-2 right-2 p-2 bg-white/90 hover:bg-white rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                            className="absolute top-2 right-2 p-2 bg-white/90 dark:bg-dark-secondary/90 hover:bg-white dark:hover:bg-dark-secondary rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-opacity duration-200"
                             title="Contact about this image"
                           >
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 text-gray-700">
@@ -363,7 +339,7 @@ Thank you!
                                 e.stopPropagation();
                                 handleSetAsBackground(image.url);
                               }}
-                              className="p-2 bg-white/90 hover:bg-white rounded-full shadow-md"
+                              className="p-2 bg-white/90 dark:bg-dark-secondary/90 hover:bg-white dark:hover:bg-dark-secondary rounded-full shadow-md"
                               title="Set as login background"
                             >
                               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 text-gray-700">
@@ -375,7 +351,7 @@ Thank you!
                                 e.stopPropagation();
                                 setEditingImage(image.id);
                               }}
-                              className="p-2 bg-white/90 hover:bg-white rounded-full shadow-md"
+                              className="p-2 bg-white/90 dark:bg-dark-secondary/90 hover:bg-white dark:hover:bg-dark-secondary rounded-full shadow-md"
                               title="Edit image details"
                             >
                               <PencilIcon className="w-4 h-4 text-gray-700" />
@@ -385,7 +361,7 @@ Thank you!
                                 e.stopPropagation();
                                 handleDelete(image.id);
                               }}
-                              className="p-2 bg-white/90 hover:bg-white rounded-full shadow-md"
+                              className="p-2 bg-white/90 dark:bg-dark-secondary/90 hover:bg-white dark:hover:bg-dark-secondary rounded-full shadow-md"
                               title="Delete image"
                             >
                               <TrashIcon className="w-4 h-4 text-red-600" />
@@ -396,7 +372,7 @@ Thank you!
                           <div className="absolute top-2 right-2">
                             <div className={`w-6 h-6 rounded-full border-2 ${selectedImages.has(image.id)
                               ? 'bg-primary border-primary'
-                              : 'border-gray-400 bg-white'
+                              : 'border-gray-400 bg-white dark:bg-dark-secondary'
                               }`}>
                               {selectedImages.has(image.id) && (
                                 <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -479,7 +455,7 @@ Thank you!
         ) : hasMore ? (
           <button
             onClick={handleLoadMore}
-            className="bg-white border border-gray-300 text-gray-700 px-6 py-2 rounded-full hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 transition-all shadow-sm"
+            className="bg-white dark:bg-dark-secondary border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-dark-primary px-6 py-2 rounded-full hover:bg-gray-50 dark:hover:bg-dark-primary focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 transition-all shadow-sm"
           >
             Load More Images
           </button>

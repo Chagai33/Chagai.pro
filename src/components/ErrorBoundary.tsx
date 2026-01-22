@@ -26,8 +26,8 @@ export class ErrorBoundary extends Component<Props, State> {
   public render() {
     if (this.state.hasError) {
       return this.props.fallback || (
-        <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-          <div className="bg-white p-6 rounded-lg shadow-md max-w-md w-full">
+        <div className="min-h-screen bg-gray-50 dark:bg-dark-primary flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-dark-secondary p-6 rounded-lg shadow-md max-w-md w-full">
             <h2 className="text-2xl font-bold text-red-600 mb-4">Something went wrong</h2>
             <p className="text-gray-600 mb-4">
               We're sorry, but something went wrong. Please try refreshing the page.

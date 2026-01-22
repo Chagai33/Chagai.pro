@@ -9,16 +9,16 @@ import { Toast } from '../../components/Toast';
 <Layout title="Admin Dashboard | PhotoFolio">
   <ErrorBoundary client:load>
     <Navbar />
-    <div id="loadingScreen" class="fixed inset-0 bg-white bg-opacity-75 flex items-center justify-center z-50">
+    <div id="loadingScreen" class="fixed inset-0 bg-white dark:bg-dark-primary bg-opacity-75 dark:bg-opacity-90 flex items-center justify-center z-50">
       <LoadingSpinner size="large" client:load />
     </div>
     
-    <main id="adminContent" class="min-h-screen bg-gray-50 py-12 hidden" dir="ltr">
+    <main id="adminContent" class="min-h-screen bg-gray-50 dark:bg-dark-primary py-12 hidden" dir="ltr">
       <div class="max-w-7xl mx-auto px-4">
         <h1 class="text-3xl font-bold text-primary mb-8">Admin Dashboard</h1>
         
         <!-- Upload Images Section -->
-        <div class="bg-white p-6 rounded-lg shadow-md mb-8">
+        <div class="bg-white dark:bg-dark-secondary p-6 rounded-lg shadow-md mb-8">
           <h2 class="text-xl font-semibold mb-4">Upload Images</h2>
           <form id="uploadForm" class="space-y-4">
             <div>
@@ -55,7 +55,7 @@ import { Toast } from '../../components/Toast';
         </div>
 
         <!-- Image Preview and Management -->
-        <div id="imagePreviewContainer" class="hidden bg-white p-6 rounded-lg shadow-md">
+        <div id="imagePreviewContainer" class="hidden bg-white dark:bg-dark-secondary p-6 rounded-lg shadow-md">
           <h2 class="text-xl font-semibold mb-4">Image Details</h2>
           <div id="imagePreviewGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
         </div>
@@ -209,7 +209,7 @@ import { Toast } from '../../components/Toast';
 
   function createImagePreviewCard(image: ImageMetadata) {
     const card = document.createElement('div');
-    card.className = 'bg-gray-50 p-4 rounded-lg';
+    card.className = 'bg-gray-50 dark:bg-dark-primary p-4 rounded-lg';
     card.innerHTML = `
       <img src="${image.url}" alt="" class="w-full h-48 object-cover rounded-lg mb-4">
       <div class="space-y-3">
