@@ -1,3 +1,5 @@
+> ⚠️ **Note:** This project is my personal portfolio and is **NOT** Open Source. All rights reserved.
+
 # Astro Starter Kit: Basics
 
 ```sh
